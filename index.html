@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Make new friends online with Friendora.io">
+    <meta name="keywords" content="social platform, make friends, online connections">
     <title>Friendora.io - Make New Friends Online</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -24,9 +26,9 @@
     </header>
 
     <div class="search-container">
-        <input type="text" id="searchInput" placeholder="Search for friends by username...">
-        <button id="searchButton">Search</button>
-        <div id="searchResults"></div>
+        <input type="text" id="searchInput" placeholder="Search for friends by username..." aria-label="Search users" maxlength="50">
+        <button id="searchButton" aria-label="Search">Search</button>
+        <div id="searchResults" aria-live="polite"></div>
     </div>
 
     <main class="container">
@@ -37,43 +39,38 @@
 
         <section class="about-section">
             <h2>About Friendora.io</h2>
-            <p>Friendora.io is a revolutionary social platform designed to help you make genuine connections and build meaningful friendships online. In today's fast-paced world, it can be challenging to meet new people who share your interests and values. That's where Friendora comes in!</p>
+            <p>Friendora.io is a revolutionary social platform designed to help you make genuine connections and build meaningful friendships online.</p>
             
             <h3>Our Mission</h3>
-            <p>We believe that everyone deserves meaningful connections. Our mission is to break down social barriers and create a safe, welcoming space where people from all walks of life can connect, share experiences, and build lasting friendships.</p>
+            <p>We believe that everyone deserves meaningful connections in a safe, welcoming space.</p>
             
             <h3>Key Features</h3>
             <ul>
-                <li><strong>Smart Matching:</strong> Our advanced algorithm suggests potential friends based on your interests, location, and personality traits.</li>
-                <li><strong>Interest Groups:</strong> Join communities centered around your hobbies, from photography to gaming to book clubs.</li>
-                <li><strong>Safe Environment:</strong> We prioritize your safety with robust privacy controls and a zero-tolerance policy for harassment.</li>
-                <li><strong>Icebreaker Questions:</strong> Our Q/A section helps start conversations naturally with thought-provoking prompts.</li>
-                <li><strong>Global Community:</strong> Connect with people from all over the world and learn about different cultures.</li>
+                <li><strong>Smart Matching:</strong> Find friends based on your interests</li>
+                <li><strong>Interest Groups:</strong> Join communities for your hobbies</li>
+                <li><strong>Safe Environment:</strong> Robust privacy controls</li>
+                <li><strong>Icebreaker Questions:</strong> Start conversations naturally</li>
+                <li><strong>Global Community:</strong> Connect worldwide</li>
             </ul>
             
             <h3>How It Works</h3>
             <ol>
-                <li>Create your free profile in minutes</li>
-                <li>Complete your personality profile to help us make better matches</li>
-                <li>Browse suggested friends or search for specific interests</li>
-                <li>Start conversations with our icebreaker tools</li>
-                <li>Build meaningful connections that can last a lifetime</li>
+                <li>Create your free profile</li>
+                <li>Complete your personality profile</li>
+                <li>Browse or search for friends</li>
+                <li>Start conversations</li>
+                <li>Build lasting connections</li>
             </ol>
-            
-            <h3>Why Choose Friendora?</h3>
-            <p>Unlike other social networks that focus on quantity over quality, Friendora is designed specifically for making real friendships. We don't show ads or sell your data. Our platform is built on the principles of authenticity, respect, and genuine human connection.</p>
-            
-            <p>Whether you're new to an area, looking to expand your social circle, or just want to meet people who share your passions, Friendora provides the tools and community to make it happen. Join thousands of users who have already found their tribe on Friendora!</p>
         </section>
     </main>
 
     <footer>
         <div class="container">
-            <p>&copy; 2025 Friendora.io. All rights reserved.</p>
+            <p>© 2025 Friendora.io. All rights reserved.</p>
             <ul class="footer-links">
-                <li><a href="terms.html">Terms of Service</a></li>
-                <li><a href="privacy.html">Privacy Policy</a></li>
-                <li><a href="about.html">About Us</a></li>
+                <li><a href="terms.html">Terms</a></li>
+                <li><a href="privacy.html">Privacy</a></li>
+                <li><a href="about.html">About</a></li>
                 <li><a href="contact.html">Contact</a></li>
             </ul>
         </div>
@@ -86,134 +83,210 @@
     </div>
 
     <script>
+        'use strict';
+
         // Configuration
-        const API_KEY = '$2a$10$XigIqUj1MWO5RQsBz.KPieu6njVgC6CIp5Y2aRVBsqXtpNoHnvoTW';
-        const BIN_ID = '67e6b5b38a456b79667e6bed';
-        const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
-        
+        const CONFIG = {
+            API_KEY: '$2a$10$XigIqUj1MWO5RQsBz.KPieu6njVgC6CIp5Y2aRVBsqXtpNoHnvoTW',
+            BIN_ID: '67e6b5b38a456b79667e6bed',
+            DEBOUNCE_DELAY: 300,
+            REQUEST_TIMEOUT: 10000,
+            getApiUrl: function() {
+                return `https://api.jsonbin.io/v3/b/${this.BIN_ID}/latest`;
+            }
+        };
+
         // DOM Elements
-        const welcomeMessage = document.getElementById('welcomeMessage');
-        const guestMessage = document.getElementById('guestMessage');
-        const userNavItem = document.getElementById('userNavItem');
-        const searchInput = document.getElementById('searchInput');
-        const searchButton = document.getElementById('searchButton');
-        const searchResults = document.getElementById('searchResults');
-        const logoutLink = document.getElementById('logoutLink');
-        const userDropdown = document.getElementById('userDropdown');
-        
-        // Check if user is logged in
+        const elements = {
+            welcomeMessage: document.getElementById('welcomeMessage'),
+            guestMessage: document.getElementById('guestMessage'),
+            userNavItem: document.getElementById('userNavItem'),
+            searchInput: document.getElementById('searchInput'),
+            searchButton: document.getElementById('searchButton'),
+            searchResults: document.getElementById('searchResults'),
+            logoutLink: document.getElementById('logoutLink'),
+            userDropdown: document.getElementById('userDropdown')
+        };
+
+        // Utility Functions
+        function sanitizeInput(input) {
+            return DOMPurify.sanitize(input.trim(), { ALLOWED_TAGS: [] });
+        }
+
+        function showMessage(type, message) {
+            elements.searchResults.innerHTML = `<p class="${type}">${sanitizeInput(message)}</p>`;
+        }
+
+        function validateUsername(username) {
+            return username && username.length >= 3 && /^[a-zA-Z0-9_.-]+$/.test(username);
+        }
+
+        // Authentication
         function checkAuth() {
-            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-            
-            if (currentUser) {
-                welcomeMessage.textContent = `Welcome, ${currentUser.username}!`;
-                guestMessage.style.display = 'none';
+            try {
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
                 
-                // Update navigation
-                userNavItem.innerHTML = `
-                    <a href="#" id="usernameLink">${currentUser.username}</a>
-                `;
-                
-                // Add dropdown event
-                document.getElementById('usernameLink').addEventListener('click', function(e) {
-                    e.preventDefault();
-                    userDropdown.style.display = userDropdown.style.display === 'block' ? 'none' : 'block';
-                });
-            } else {
-                welcomeMessage.textContent = '';
-                guestMessage.style.display = 'block';
-                userNavItem.innerHTML = '<a href="signup.html">Sign Up</a>';
+                if (currentUser?.username && validateUsername(currentUser.username)) {
+                    elements.welcomeMessage.textContent = `Welcome, ${sanitizeInput(currentUser.username)}!`;
+                    elements.guestMessage.style.display = 'none';
+                    elements.userNavItem.innerHTML = `
+                        <a href="#" id="usernameLink" aria-label="User menu">${sanitizeInput(currentUser.username)}</a>
+                    `;
+                    setupDropdown();
+                } else {
+                    elements.welcomeMessage.textContent = '';
+                    elements.guestMessage.style.display = 'block';
+                    elements.userNavItem.innerHTML = '<a href="signup.html">Sign Up</a>';
+                }
+            } catch (error) {
+                console.error('Auth error:', error);
+                showMessage('error', 'Authentication failed. Please try again.');
             }
         }
-        
-        // Handle logout
-        logoutLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            localStorage.removeItem('currentUser');
-            window.location.reload();
-        });
-        
-        // Search for users
-        async function searchUsers() {
-            const query = searchInput.value.trim();
-            if (!query) return;
-            
-            try {
-                const response = await fetch(API_URL, {
-                    headers: {
-                        'X-Master-Key': API_KEY
-                    }
+
+        function setupDropdown() {
+            const usernameLink = document.getElementById('usernameLink');
+            if (usernameLink) {
+                usernameLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    elements.userDropdown.style.display = 
+                        elements.userDropdown.style.display === 'block' ? 'none' : 'block';
                 });
+            }
+        }
+
+        // Logout
+        function handleLogout(e) {
+            e.preventDefault();
+            try {
+                localStorage.removeItem('currentUser');
+                window.location.reload();
+            } catch (error) {
+                console.error('Logout error:', error);
+                showMessage('error', 'Logout failed. Please try again.');
+            }
+        }
+
+        // Search Functionality
+        const debounce = (func, wait) => {
+            let timeout;
+            return (...args) => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        };
+
+        async function searchUsers() {
+            const query = elements.searchInput.value.trim();
+            if (!validateUsername(query)) {
+                showMessage('warning', 'Please enter a valid username (3+ characters, alphanumeric)');
+                return;
+            }
+
+            showMessage('loading', 'Searching...');
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
+
+                const response = await fetch(CONFIG.getApiUrl(), {
+                    headers: {
+                        'X-Master-Key': CONFIG.API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
                 const data = await response.json();
-                const users = data.record.users || [];
+                const users = Array.isArray(data.record?.users) ? data.record.users : [];
                 
                 const foundUser = users.find(user => 
-                    user.username.toLowerCase() === query.toLowerCase()
+                    user.username && user.username.toLowerCase() === query.toLowerCase()
                 );
-                
+
                 if (foundUser) {
-                    searchResults.innerHTML = `
-                        <div class="user-result">
-                            <p>User found: ${foundUser.username}</p>
-                            <button id="viewProfileBtn">View Profile</button>
-                            <button id="followBtn">Follow</button>
-                        </div>
-                    `;
-                    
-                    document.getElementById('viewProfileBtn').addEventListener('click', () => {
-                        window.location.href = `profile.html?username=${foundUser.username}`;
-                    });
-                    
-                    document.getElementById('followBtn').addEventListener('click', async () => {
-                        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-                        if (!currentUser) {
-                            alert('Please sign in to follow users');
-                            return;
-                        }
-                        
-                        // Check if already following
-                        const isFollowing = currentUser.following && 
-                            currentUser.following.includes(foundUser.username);
-                        
-                        if (isFollowing) {
-                            alert(`You're already following ${foundUser.username}`);
-                            return;
-                        }
-                        
-                        // Update following list
-                        if (!currentUser.following) currentUser.following = [];
-                        currentUser.following.push(foundUser.username);
-                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                        
-                        // Update database (simplified for demo)
-                        alert(`You're now following ${foundUser.username}!`);
-                    });
+                    window.location.href = `profile.html?username=${encodeURIComponent(foundUser.username)}`;
                 } else {
-                    searchResults.innerHTML = `<p class="no-results">User not found</p>`;
+                    showMessage('no-results', `No user found with username "${sanitizeInput(query)}"`);
                 }
             } catch (error) {
                 console.error('Search error:', error);
-                searchResults.innerHTML = `<p class="error">Error searching for user</p>`;
-            }
-        }
-        
-        // Event listeners
-        searchButton.addEventListener('click', searchUsers);
-        searchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') searchUsers();
-        });
-        
-        // Close dropdown when clicking outside
-        window.addEventListener('click', function(event) {
-            if (!event.target.matches('#usernameLink')) {
-                if (userDropdown.style.display === 'block') {
-                    userDropdown.style.display = 'none';
+                if (error.name === 'AbortError') {
+                    showMessage('error', 'Search timed out. Please try again.');
+                } else {
+                    showMessage('error', 'Failed to search users. Please check your connection.');
                 }
             }
-        });
-        
-        // Initialize page
-        checkAuth();
+        }
+
+        async function handleFollow(user) {
+            try {
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                if (!currentUser.username) {
+                    alert('Please sign in to follow users');
+                    return;
+                }
+
+                currentUser.following = Array.isArray(currentUser.following) ? currentUser.following : [];
+                if (currentUser.following.includes(user.username)) {
+                    alert(`You're already following ${user.username}`);
+                    return;
+                }
+
+                currentUser.following.push(user.username);
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                alert(`You're now following ${user.username}!`);
+            } catch (error) {
+                console.error('Follow error:', error);
+                showMessage('error', 'Failed to follow user');
+            }
+        }
+
+        // Event Listeners
+        function setupEventListeners() {
+            elements.searchButton.addEventListener('click', searchUsers);
+            elements.searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') searchUsers();
+            });
+            elements.logoutLink.addEventListener('click', handleLogout);
+
+            const debouncedSearch = debounce(searchUsers, CONFIG.DEBOUNCE_DELAY);
+            elements.searchInput.addEventListener('input', debouncedSearch);
+
+            window.addEventListener('click', (event) => {
+                if (!event.target.matches('#usernameLink') && 
+                    elements.userDropdown.style.display === 'block') {
+                    elements.userDropdown.style.display = 'none';
+                }
+            });
+        }
+
+        // Initialize
+        function initialize() {
+            if (Object.values(elements).some(el => !el)) {
+                console.error('One or more DOM elements not found');
+                showMessage('error', 'Page loading error. Please refresh.');
+                return;
+            }
+            checkAuth();
+            setupEventListeners();
+        }
+
+        document.addEventListener('DOMContentLoaded', initialize);
+
+        // Note: Add DOMPurify library for sanitization
+        if (typeof DOMPurify === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.7/purify.min.js';
+            script.onload = initialize;
+            document.head.appendChild(script);
+        }
     </script>
 </body>
 </html>
