@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friendora.io - Sign Up</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="signup-container">
+        <h1>Friendora.io</h1>
+        <h2>Create Your Account</h2>
+        <form id="signupForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+                <div id="usernameError" class="error-message"></div>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+                <div id="emailError" class="error-message"></div>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required minlength="8">
+                <div class="password-requirements">
+                    Password must be at least 8 characters long
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required>
+                <div id="passwordError" class="error-message"></div>
+            </div>
+            <button type="submit" id="signupButton">Sign Up</button>
+        </form>
+        <div class="login-link">
+            Already have an account? <a href="login.html">Log in</a>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_KEY = '$2a$10$XigIqUj1MWO5RQsBz.KPieu6njVgC6CIp5Y2aRVBsqXtpNoHnvoTW';
+        const BIN_ID = '67e6b5b38a456b79667e6bed';
+        const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
+        const UPDATE_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+        
+        // DOM Elements
+        const signupForm = document.getElementById('signupForm');
+        const usernameInput = document.getElementById('username');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const usernameError = document.getElementById('usernameError');
+        const emailError = document.getElementById('emailError');
+        const passwordError = document.getElementById('passwordError');
+        const signupButton = document.getElementById('signupButton');
+        
+        // Security headers for API requests
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-Master-Key': API_KEY,
+            'X-Bin-Versioning': 'false'
+        };
+        
+        // Validate email format
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                return false;
+            }
+            
+            // Check if email ends with .com
+            if (!email.toLowerCase().endsWith('.com')) {
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // Check if username is already taken
+        async function isUsernameTaken(username) {
+            try {
+                const response = await fetch(API_URL, { headers });
+                const data = await response.json();
+                const users = data.record.users || [];
+                
+                return users.some(user => user.username.toLowerCase() === username.toLowerCase());
+            } catch (error) {
+                console.error('Error checking username:', error);
+                return true; // Assume taken to prevent duplicates in case of error
+            }
+        }
+        
+        // Check if email is already taken
+        async function isEmailTaken(email) {
+            try {
+                const response = await fetch(API_URL, { headers });
+                const data = await response.json();
+                const users = data.record.users || [];
+                
+                return users.some(user => user.email.toLowerCase() === email.toLowerCase());
+            } catch (error) {
+                console.error('Error checking email:', error);
+                return true; // Assume taken to prevent duplicates in case of error
+            }
+        }
+        
+        // Validate password strength
+        function isPasswordStrong(password) {
+            return password.length >= 8;
+        }
+        
+        // Validate form inputs
+        async function validateForm() {
+            let isValid = true;
+            const username = usernameInput.value.trim();
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            
+            // Reset error messages
+            usernameError.textContent = '';
+            emailError.textContent = '';
+            passwordError.textContent = '';
+            
+            // Validate username
+            if (username.length < 3) {
+                usernameError.textContent = 'Username must be at least 3 characters';
+                isValid = false;
+            } else if (await isUsernameTaken(username)) {
+                usernameError.textContent = 'Username is already taken';
+                isValid = false;
+            }
+            
+            // Validate email
+            if (!isValidEmail(email)) {
+                emailError.textContent = 'Please enter a valid .com email address';
+                isValid = false;
+            } else if (await isEmailTaken(email)) {
+                emailError.textContent = 'Email is already registered';
+                isValid = false;
+            }
+            
+            // Validate password
+            if (!isPasswordStrong(password)) {
+                passwordError.textContent = 'Password must be at least 8 characters';
+                isValid = false;
+            } else if (password !== confirmPassword) {
+                passwordError.textContent = 'Passwords do not match';
+                isValid = false;
+            }
+            
+            return isValid;
+        }
+        
+        // Handle form submission
+        async function handleSignup(event) {
+            event.preventDefault();
+            
+            // Disable button to prevent multiple submissions
+            signupButton.disabled = true;
+            signupButton.textContent = 'Creating account...';
+            
+            if (!await validateForm()) {
+                signupButton.disabled = false;
+                signupButton.textContent = 'Sign Up';
+                return;
+            }
+            
+            try {
+                // Get current users
+                const response = await fetch(API_URL, { headers });
+                const data = await response.json();
+                const users = data.record.users || [];
+                const version = data.metadata.version;
+                
+                // Add new user
+                const newUser = {
+                    username: usernameInput.value.trim(),
+                    email: emailInput.value.trim(),
+                    password: passwordInput.value, // Note: In a real app, you should hash this
+                    createdAt: new Date().toISOString()
+                };
+                
+                users.push(newUser);
+                
+                // Update the database
+                const updateResponse = await fetch(UPDATE_URL, {
+                    method: 'PUT',
+                    headers: headers,
+                    body: JSON.stringify({ users })
+                });
+                
+                if (updateResponse.ok) {
+                    // Store user session (simplified for demo)
+                    localStorage.setItem('currentUser', JSON.stringify({
+                        username: newUser.username,
+                        email: newUser.email
+                    }));
+                    
+                    // Redirect to homepage
+                    window.location.href = 'index.html';
+                } else {
+                    throw new Error('Failed to update database');
+                }
+            } catch (error) {
+                console.error('Signup error:', error);
+                passwordError.textContent = 'An error occurred. Please try again.';
+                signupButton.disabled = false;
+                signupButton.textContent = 'Sign Up';
+            }
+        }
+        
+        // Event listeners
+        signupForm.addEventListener('submit', handleSignup);
+        
+        // Real-time validation
+        usernameInput.addEventListener('blur', async () => {
+            const username = usernameInput.value.trim();
+            if (username.length < 3) {
+                usernameError.textContent = 'Username must be at least 3 characters';
+            } else if (await isUsernameTaken(username)) {
+                usernameError.textContent = 'Username is already taken';
+            } else {
+                usernameError.textContent = '';
+            }
+        });
+        
+        emailInput.addEventListener('blur', async () => {
+            const email = emailInput.value.trim();
+            if (!isValidEmail(email)) {
+                emailError.textContent = 'Please enter a valid .com email address';
+            } else if (await isEmailTaken(email)) {
+                emailError.textContent = 'Email is already registered';
+            } else {
+                emailError.textContent = '';
+            }
+        });
+        
+        passwordInput.addEventListener('input', () => {
+            if (!isPasswordStrong(passwordInput.value)) {
+                passwordError.textContent = 'Password must be at least 8 characters';
+            } else {
+                passwordError.textContent = '';
+            }
+        });
+        
+        confirmPasswordInput.addEventListener('input', () => {
+            if (passwordInput.value !== confirmPasswordInput.value) {
+                passwordError.textContent = 'Passwords do not match';
+            } else if (isPasswordStrong(passwordInput.value)) {
+                passwordError.textContent = '';
+            }
+        });
+    </script>
+</body>
+</html>
