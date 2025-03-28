@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Profile - Friendora.io</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1 class="logo">Friendora.io</h1>
+            <nav>
+                <ul>
+                    <li id="userNavItem"></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="terms.html">Terms</a></li>
+                    <li><a href="feed.html">Feed</a></li>
+                    <li><a href="qna.html">Q/Ans</a></li>
+                    <li><a href="privacy.html">Privacy</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="profile-edit-container">
+            <h1>Edit Your Profile</h1>
+            
+            <form id="profileForm">
+                <div class="form-section">
+                    <h2>Basic Information</h2>
+                    
+                    <div class="form-group profile-picture-group">
+                        <label for="profilePicture">Profile Picture</label>
+                        <div class="picture-preview" id="picturePreview"></div>
+                        <input type="file" id="profilePicture" accept="image/*">
+                        <button type="button" id="uploadBtn">Upload Photo</button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="accountDate">Account Created</label>
+                        <input type="text" id="accountDate" disabled>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="age">Age</label>
+                        <input type="number" id="age" min="13" max="120">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="nationality">Nationality</label>
+                        <input type="text" id="nationality" placeholder="e.g., American, Indian, British">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="country">Country</label>
+                        <select id="country">
+                            <option value="">Select Country</option>
+                            <!-- Countries will be populated by JavaScript -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Gender</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="gender" value="male"> Male</label>
+                            <label><input type="radio" name="gender" value="female"> Female</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h2>About You</h2>
+                    
+                    <div class="form-group">
+                        <label for="interests">Interests (comma separated)</label>
+                        <input type="text" id="interests" placeholder="e.g., Photography, Travel, Music">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="hobbies">Hobbies</label>
+                        <textarea id="hobbies" rows="3" placeholder="What do you enjoy doing in your free time?"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="flair">Flair (emoji)</label>
+                        <input type="text" id="flair" placeholder="😊" maxlength="2">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="bio">Bio</label>
+                        <textarea id="bio" rows="5" placeholder="Tell others about yourself..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h2>Contact Information</h2>
+                    
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" placeholder="+1 234 567 8900">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="onlineStatus">Online Status</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="onlineStatus">
+                            <span class="slider"></span>
+                            <span class="status-text" id="statusText">Offline</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" id="saveBtn">Save Profile</button>
+                    <button type="button" id="cancelBtn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 Friendora.io. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Configuration
+        const API_KEY = '$2a$10$XigIqUj1MWO5RQsBz.KPieu6njVgC6CIp5Y2aRVBsqXtpNoHnvoTW';
+        const BIN_ID = '67e6b5b38a456b79667e6bed';
+        const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
+        const UPDATE_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+        
+        // DOM Elements
+        const profileForm = document.getElementById('profileForm');
+        const picturePreview = document.getElementById('picturePreview');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const profilePicture = document.getElementById('profilePicture');
+        const accountDate = document.getElementById('accountDate');
+        const ageInput = document.getElementById('age');
+        const nationalityInput = document.getElementById('nationality');
+        const countrySelect = document.getElementById('country');
+        const interestsInput = document.getElementById('interests');
+        const hobbiesInput = document.getElementById('hobbies');
+        const flairInput = document.getElementById('flair');
+        const bioInput = document.getElementById('bio');
+        const phoneInput = document.getElementById('phone');
+        const onlineStatus = document.getElementById('onlineStatus');
+        const statusText = document.getElementById('statusText');
+        const saveBtn = document.getElementById('saveBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const userNavItem = document.getElementById('userNavItem');
+        
+        // Countries list (abbreviated for example)
+        const countries = [
+            "United States", "Canada", "United Kingdom", "Australia", "Germany",
+            "France", "Japan", "India", "Brazil", "Mexico", "South Africa"
+        ];
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            populateCountries();
+            loadProfileData();
+            
+            // Online status toggle
+            onlineStatus.addEventListener('change', function() {
+                statusText.textContent = this.checked ? 'Online' : 'Offline';
+            });
+            
+            // Profile picture upload
+            uploadBtn.addEventListener('click', function() {
+                profilePicture.click();
+            });
+            
+            profilePicture.addEventListener('change', function(e) {
+                if (e.target.files && e.target.files[0]) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(event) {
+                        picturePreview.style.backgroundImage = `url(${event.target.result})`;
+                        picturePreview.textContent = '';
+                    };
+                    
+                    reader.readAsDataURL(e.target.files[0]);
+                }
+            });
+            
+            // Form submission
+            profileForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'Saving...';
+                
+                await saveProfile();
+                
+                // Redirect to profile page
+                window.location.href = 'profile.html';
+            });
+            
+            cancelBtn.addEventListener('click', function() {
+                window.location.href = 'profile.html';
+            });
+        });
+        
+        // Check authentication
+        function checkAuth() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
+            if (!currentUser) {
+                window.location.href = 'signup.html';
+                return;
+            }
+            
+            // Update navigation
+            userNavItem.innerHTML = `<a href="profile.html">${currentUser.username}</a>`;
+        }
+        
+        // Populate countries dropdown
+        function populateCountries() {
+            countries.forEach(country => {
+                const option = document.createElement('option');
+                option.value = country;
+                option.textContent = country;
+                countrySelect.appendChild(option);
+            });
+        }
+        
+        // Load profile data
+        async function loadProfileData() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser) return;
+            
+            try {
+                const response = await fetch(API_URL, {
+                    headers: {
+                        'X-Master-Key': API_KEY
+                    }
+                });
+                const data = await response.json();
+                const users = data.record.users || [];
+                
+                const userProfile = users.find(user => user.username === currentUser.username);
+                if (userProfile) {
+                    // Set form values
+                    accountDate.value = new Date(userProfile.createdAt).toLocaleDateString();
+                    
+                    if (userProfile.profile) {
+                        const profile = userProfile.profile;
+                        
+                        if (profile.picture) {
+                            picturePreview.style.backgroundImage = `url(${profile.picture})`;
+                            picturePreview.textContent = '';
+                        }
+                        
+                        ageInput.value = profile.age || '';
+                        nationalityInput.value = profile.nationality || '';
+                        countrySelect.value = profile.country || '';
+                        
+                        if (profile.gender) {
+                            document.querySelector(`input[name="gender"][value="${profile.gender}"]`).checked = true;
+                        }
+                        
+                        interestsInput.value = profile.interests ? profile.interests.join(', ') : '';
+                        hobbiesInput.value = profile.hobbies || '';
+                        flairInput.value = profile.flair || '';
+                        bioInput.value = profile.bio || '';
+                        phoneInput.value = profile.phone || '';
+                        
+                        if (profile.onlineStatus) {
+                            onlineStatus.checked = true;
+                            statusText.textContent = 'Online';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+            }
+        }
+        
+        // Save profile data
+        async function saveProfile() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser) return;
+            
+            try {
+                // Get current users
+                const response = await fetch(API_URL, {
+                    headers: {
+                        'X-Master-Key': API_KEY
+                    }
+                });
+                const data = await response.json();
+                const users = data.record.users || [];
+                const version = data.metadata.version;
+                
+                // Find current user
+                const userIndex = users.findIndex(user => user.username === currentUser.username);
+                if (userIndex === -1) return;
+                
+                // Get picture data
+                let pictureData = '';
+                if (profilePicture.files && profilePicture.files[0]) {
+                    pictureData = await getBase64(profilePicture.files[0]);
+                } else if (picturePreview.style.backgroundImage) {
+                    pictureData = picturePreview.style.backgroundImage.slice(4, -1).replace(/"/g, "");
+                }
+                
+                // Prepare profile data
+                const profileData = {
+                    picture: pictureData,
+                    age: ageInput.value,
+                    nationality: nationalityInput.value,
+                    country: countrySelect.value,
+                    gender: document.querySelector('input[name="gender"]:checked')?.value || '',
+                    interests: interestsInput.value.split(',').map(item => item.trim()).filter(item => item),
+                    hobbies: hobbiesInput.value,
+                    flair: flairInput.value,
+                    bio: bioInput.value,
+                    phone: phoneInput.value,
+                    onlineStatus: onlineStatus.checked,
+                    lastUpdated: new Date().toISOString()
+                };
+                
+                // Update user profile
+                users[userIndex].profile = profileData;
+                currentUser.profile = profileData;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+                // Update database
+                await fetch(UPDATE_URL, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY,
+                        'X-Bin-Versioning': 'false'
+                    },
+                    body: JSON.stringify({ users })
+                });
+                
+            } catch (error) {
+                console.error('Error saving profile:', error);
+                alert('Failed to save profile. Please try again.');
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save Profile';
+            }
+        }
+        
+        // Convert image to base64
+        function getBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+    </script>
+</body>
+</html>
