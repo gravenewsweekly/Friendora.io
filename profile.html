@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - Friendora.io</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1 class="logo">Friendora.io</h1>
+            <nav>
+                <ul>
+                    <li id="userNavItem"></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="terms.html">Terms</a></li>
+                    <li><a href="feed.html">Feed</a></li>
+                    <li><a href="qna.html">Q/Ans</a></li>
+                    <li><a href="privacy.html">Privacy</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="profile-container">
+            <div class="profile-header">
+                <div class="profile-picture" id="profilePicture"></div>
+                <div class="profile-info">
+                    <h1 id="profileUsername"></h1>
+                    <div class="profile-status" id="profileStatus"></div>
+                    <div class="profile-flair" id="profileFlair"></div>
+                    <button id="editProfileBtn">Edit Profile</button>
+                </div>
+            </div>
+
+            <div class="profile-details">
+                <div class="profile-section">
+                    <h2>About Me</h2>
+                    <div class="detail-item">
+                        <span class="detail-label">Account Created:</span>
+                        <span id="accountDate"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Age:</span>
+                        <span id="age"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Gender:</span>
+                        <span id="gender"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Nationality:</span>
+                        <span id="nationality"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Country:</span>
+                        <span id="country"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Interests:</span>
+                        <span id="interests"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Hobbies:</span>
+                        <span id="hobbies"></span>
+                    </div>
+                </div>
+
+                <div class="profile-section">
+                    <h2>Bio</h2>
+                    <div class="bio-content" id="bio"></div>
+                </div>
+
+                <div class="profile-section">
+                    <h2>Contact Information</h2>
+                    <div class="detail-item">
+                        <span class="detail-label">Email:</span>
+                        <span id="email"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Phone:</span>
+                        <span id="phone"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 Friendora.io. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Configuration
+        const API_KEY = '$2a$10$XigIqUj1MWO5RQsBz.KPieu6njVgC6CIp5Y2aRVBsqXtpNoHnvoTW';
+        const BIN_ID = '67e6b5b38a456b79667e6bed';
+        const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
+        
+        // DOM Elements
+        const profilePicture = document.getElementById('profilePicture');
+        const profileUsername = document.getElementById('profileUsername');
+        const profileStatus = document.getElementById('profileStatus');
+        const profileFlair = document.getElementById('profileFlair');
+        const accountDate = document.getElementById('accountDate');
+        const age = document.getElementById('age');
+        const gender = document.getElementById('gender');
+        const nationality = document.getElementById('nationality');
+        const country = document.getElementById('country');
+        const interests = document.getElementById('interests');
+        const hobbies = document.getElementById('hobbies');
+        const bio = document.getElementById('bio');
+        const email = document.getElementById('email');
+        const phone = document.getElementById('phone');
+        const editProfileBtn = document.getElementById('editProfileBtn');
+        const userNavItem = document.getElementById('userNavItem');
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            loadProfileData();
+            
+            editProfileBtn.addEventListener('click', function() {
+                window.location.href = 'edit-profile.html';
+            });
+        });
+        
+        // Check authentication
+        function checkAuth() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
+            if (!currentUser) {
+                window.location.href = 'signup.html';
+                return;
+            }
+            
+            // Update navigation
+            userNavItem.innerHTML = `<a href="profile.html">${currentUser.username}</a>`;
+        }
+        
+        // Load profile data
+        async function loadProfileData() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser) return;
+            
+            try {
+                const response = await fetch(API_URL, {
+                    headers: {
+                        'X-Master-Key': API_KEY
+                    }
+                });
+                const data = await response.json();
+                const users = data.record.users || [];
+                
+                const userProfile = users.find(user => user.username === currentUser.username);
+                if (userProfile) {
+                    // Set basic info
+                    profileUsername.textContent = currentUser.username;
+                    email.textContent = currentUser.email || 'Not provided';
+                    
+                    // Set account creation date
+                    if (userProfile.createdAt) {
+                        accountDate.textContent = new Date(userProfile.createdAt).toLocaleDateString();
+                    }
+                    
+                    // Set profile picture
+                    if (userProfile.profile?.picture) {
+                        profilePicture.style.backgroundImage = `url(${userProfile.profile.picture})`;
+                    } else {
+                        profilePicture.textContent = currentUser.username.charAt(0).toUpperCase();
+                    }
+                    
+                    // Set profile details if they exist
+                    if (userProfile.profile) {
+                        const profile = userProfile.profile;
+                        
+                        // Status
+                        if (profile.onlineStatus) {
+                            profileStatus.innerHTML = '<span class="online-dot"></span> Online';
+                            profileStatus.classList.add('online');
+                        } else {
+                            profileStatus.innerHTML = '<span class="offline-dot"></span> Offline';
+                            profileStatus.classList.add('offline');
+                        }
+                        
+                        // Flair
+                        if (profile.flair) {
+                            profileFlair.textContent = profile.flair;
+                        }
+                        
+                        // Basic details
+                        age.textContent = profile.age || 'Not specified';
+                        gender.textContent = profile.gender ? profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1) : 'Not specified';
+                        nationality.textContent = profile.nationality || 'Not specified';
+                        country.textContent = profile.country || 'Not specified';
+                        
+                        // Interests
+                        if (profile.interests && profile.interests.length > 0) {
+                            interests.textContent = profile.interests.join(', ');
+                        } else {
+                            interests.textContent = 'Not specified';
+                        }
+                        
+                        // Hobbies
+                        hobbies.textContent = profile.hobbies || 'Not specified';
+                        
+                        // Bio
+                        bio.textContent = profile.bio || 'No bio yet. Tell others about yourself!';
+                        
+                        // Phone
+                        phone.textContent = profile.phone || 'Not provided';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+            }
+        }
+    </script>
+</body>
+</html>
