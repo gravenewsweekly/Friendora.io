@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friendora.io - Make New Friends Online</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1 class="logo">Friendora.io</h1>
+            <nav>
+                <ul>
+                    <li id="userNavItem"></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="terms.html">Terms</a></li>
+                    <li><a href="feed.html">Feed</a></li>
+                    <li><a href="qna.html">Q/Ans</a></li>
+                    <li><a href="privacy.html">Privacy</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Search for friends by username...">
+        <button id="searchButton">Search</button>
+        <div id="searchResults"></div>
+    </div>
+
+    <main class="container">
+        <section class="welcome-section">
+            <h2 id="welcomeMessage"></h2>
+            <p id="guestMessage">Hey guest! Create an account to make and meet new friends from around the world.</p>
+        </section>
+
+        <section class="about-section">
+            <h2>About Friendora.io</h2>
+            <p>Friendora.io is a revolutionary social platform designed to help you make genuine connections and build meaningful friendships online. In today's fast-paced world, it can be challenging to meet new people who share your interests and values. That's where Friendora comes in!</p>
+            
+            <h3>Our Mission</h3>
+            <p>We believe that everyone deserves meaningful connections. Our mission is to break down social barriers and create a safe, welcoming space where people from all walks of life can connect, share experiences, and build lasting friendships.</p>
+            
+            <h3>Key Features</h3>
+            <ul>
+                <li><strong>Smart Matching:</strong> Our advanced algorithm suggests potential friends based on your interests, location, and personality traits.</li>
+                <li><strong>Interest Groups:</strong> Join communities centered around your hobbies, from photography to gaming to book clubs.</li>
+                <li><strong>Safe Environment:</strong> We prioritize your safety with robust privacy controls and a zero-tolerance policy for harassment.</li>
+                <li><strong>Icebreaker Questions:</strong> Our Q/A section helps start conversations naturally with thought-provoking prompts.</li>
+                <li><strong>Global Community:</strong> Connect with people from all over the world and learn about different cultures.</li>
+            </ul>
+            
+            <h3>How It Works</h3>
+            <ol>
+                <li>Create your free profile in minutes</li>
+                <li>Complete your personality profile to help us make better matches</li>
+                <li>Browse suggested friends or search for specific interests</li>
+                <li>Start conversations with our icebreaker tools</li>
+                <li>Build meaningful connections that can last a lifetime</li>
+            </ol>
+            
+            <h3>Why Choose Friendora?</h3>
+            <p>Unlike other social networks that focus on quantity over quality, Friendora is designed specifically for making real friendships. We don't show ads or sell your data. Our platform is built on the principles of authenticity, respect, and genuine human connection.</p>
+            
+            <p>Whether you're new to an area, looking to expand your social circle, or just want to meet people who share your passions, Friendora provides the tools and community to make it happen. Join thousands of users who have already found their tribe on Friendora!</p>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Friendora.io. All rights reserved.</p>
+            <ul class="footer-links">
+                <li><a href="terms.html">Terms of Service</a></li>
+                <li><a href="privacy.html">Privacy Policy</a></li>
+                <li><a href="about.html">About Us</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+        </div>
+    </footer>
+
+    <div id="userDropdown" class="dropdown-content">
+        <a href="profile.html">View Profile</a>
+        <a href="edit-profile.html">Edit Profile</a>
+        <a href="login.html" id="logoutLink">Log Out</a>
+    </div>
+
+    <script>
+        // Configuration
+        const API_KEY = '$2a$10$XigIqUj1MWO5RQsBz.KPieu6njVgC6CIp5Y2aRVBsqXtpNoHnvoTW';
+        const BIN_ID = '67e6b5b38a456b79667e6bed';
+        const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
+        
+        // DOM Elements
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        const guestMessage = document.getElementById('guestMessage');
+        const userNavItem = document.getElementById('userNavItem');
+        const searchInput = document.getElementById('searchInput');
+        const searchButton = document.getElementById('searchButton');
+        const searchResults = document.getElementById('searchResults');
+        const logoutLink = document.getElementById('logoutLink');
+        const userDropdown = document.getElementById('userDropdown');
+        
+        // Check if user is logged in
+        function checkAuth() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
+            if (currentUser) {
+                welcomeMessage.textContent = `Welcome, ${currentUser.username}!`;
+                guestMessage.style.display = 'none';
+                
+                // Update navigation
+                userNavItem.innerHTML = `
+                    <a href="#" id="usernameLink">${currentUser.username}</a>
+                `;
+                
+                // Add dropdown event
+                document.getElementById('usernameLink').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    userDropdown.style.display = userDropdown.style.display === 'block' ? 'none' : 'block';
+                });
+            } else {
+                welcomeMessage.textContent = '';
+                guestMessage.style.display = 'block';
+                userNavItem.innerHTML = '<a href="signup.html">Sign Up</a>';
+            }
+        }
+        
+        // Handle logout
+        logoutLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            localStorage.removeItem('currentUser');
+            window.location.reload();
+        });
+        
+        // Search for users
+        async function searchUsers() {
+            const query = searchInput.value.trim();
+            if (!query) return;
+            
+            try {
+                const response = await fetch(API_URL, {
+                    headers: {
+                        'X-Master-Key': API_KEY
+                    }
+                });
+                const data = await response.json();
+                const users = data.record.users || [];
+                
+                const foundUser = users.find(user => 
+                    user.username.toLowerCase() === query.toLowerCase()
+                );
+                
+                if (foundUser) {
+                    searchResults.innerHTML = `
+                        <div class="user-result">
+                            <p>User found: ${foundUser.username}</p>
+                            <button id="viewProfileBtn">View Profile</button>
+                            <button id="followBtn">Follow</button>
+                        </div>
+                    `;
+                    
+                    document.getElementById('viewProfileBtn').addEventListener('click', () => {
+                        window.location.href = `profile.html?username=${foundUser.username}`;
+                    });
+                    
+                    document.getElementById('followBtn').addEventListener('click', async () => {
+                        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+                        if (!currentUser) {
+                            alert('Please sign in to follow users');
+                            return;
+                        }
+                        
+                        // Check if already following
+                        const isFollowing = currentUser.following && 
+                            currentUser.following.includes(foundUser.username);
+                        
+                        if (isFollowing) {
+                            alert(`You're already following ${foundUser.username}`);
+                            return;
+                        }
+                        
+                        // Update following list
+                        if (!currentUser.following) currentUser.following = [];
+                        currentUser.following.push(foundUser.username);
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        
+                        // Update database (simplified for demo)
+                        alert(`You're now following ${foundUser.username}!`);
+                    });
+                } else {
+                    searchResults.innerHTML = `<p class="no-results">User not found</p>`;
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                searchResults.innerHTML = `<p class="error">Error searching for user</p>`;
+            }
+        }
+        
+        // Event listeners
+        searchButton.addEventListener('click', searchUsers);
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') searchUsers();
+        });
+        
+        // Close dropdown when clicking outside
+        window.addEventListener('click', function(event) {
+            if (!event.target.matches('#usernameLink')) {
+                if (userDropdown.style.display === 'block') {
+                    userDropdown.style.display = 'none';
+                }
+            }
+        });
+        
+        // Initialize page
+        checkAuth();
+    </script>
+</body>
+</html>
