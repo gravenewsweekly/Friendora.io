@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Profile - Friendora.io</title>
+    <meta name="description" content="View profiles on Friendora.io">
+    <meta name="keywords" content="profile, social, Friendora.io">
+    <title>Profile - Friendora.io</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header>
         <div class="container">
-            <h1 class="logo">Friendora.io</h1>
+            <h1 class="logo"><a href="index.html">Friendora.io</a></h1>
             <nav>
                 <ul>
                     <li id="userNavItem"></li>
@@ -24,64 +26,65 @@
     </header>
 
     <main class="container">
-        <div class="profile-container">
+        <div class="profile-container" id="profileContainer" aria-live="polite">
             <div class="profile-header">
                 <div class="profile-picture" id="profilePicture"></div>
                 <div class="profile-info">
-                    <h1 id="profileUsername"></h1>
-                    <div class="profile-status" id="profileStatus"></div>
+                    <h1 id="profileUsername">Loading...</h1>
+                    <div class="profile-status" id="profileStatus"><span class="loading-dot"></span> Loading...</div>
                     <div class="profile-flair" id="profileFlair"></div>
-                    <button id="editProfileBtn">Edit Profile</button>
+                    <button id="editProfileBtn" aria-label="Edit Profile" style="display: none;">Edit Profile</button>
+                    <button id="followBtn" aria-label="Follow User" style="display: none;">Follow</button>
                 </div>
             </div>
 
             <div class="profile-details">
                 <div class="profile-section">
-                    <h2>About Me</h2>
+                    <h2>About</h2>
                     <div class="detail-item">
                         <span class="detail-label">Account Created:</span>
-                        <span id="accountDate"></span>
+                        <span id="accountDate">Loading...</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Age:</span>
-                        <span id="age"></span>
+                        <span id="age">Loading...</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Gender:</span>
-                        <span id="gender"></span>
+                        <span id="gender">Loading...</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Nationality:</span>
-                        <span id="nationality"></span>
+                        <span id="nationality">Loading...</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Country:</span>
-                        <span id="country"></span>
+                        <span id="country">Loading...</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Interests:</span>
-                        <span id="interests"></span>
+                        <span id="interests">Loading...</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Hobbies:</span>
-                        <span id="hobbies"></span>
+                        <span id="hobbies">Loading...</span>
                     </div>
                 </div>
 
                 <div class="profile-section">
                     <h2>Bio</h2>
-                    <div class="bio-content" id="bio"></div>
+                    <div class="bio-content" id="bio">Loading...</div>
                 </div>
 
                 <div class="profile-section">
                     <h2>Contact Information</h2>
                     <div class="detail-item">
                         <span class="detail-label">Email:</span>
-                        <span id="email"></span>
+                        <span id="email">Loading...</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Phone:</span>
-                        <span id="phone"></span>
+                        <span id="phone">Loading...</span>
                     </div>
                 </div>
             </div>
@@ -90,134 +93,228 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2023 Friendora.io. All rights reserved.</p>
+            <p>© 2025 Friendora.io. All rights reserved.</p>
         </div>
     </footer>
 
     <script>
+        'use strict';
+
         // Configuration
-        const API_KEY = '$2a$10$XigIqUj1MWO5RQsBz.KPieu6njVgC6CIp5Y2aRVBsqXtpNoHnvoTW';
-        const BIN_ID = '67e6b5b38a456b79667e6bed';
-        const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
-        
+        const CONFIG = {
+            API_KEY: '$2a$10$XigIqUj1MWO5RQsBz.KPieu6njVgC6CIp5Y2aRVBsqXtpNoHnvoTW',
+            BIN_ID: '67e6b5b38a456b79667e6bed',
+            REQUEST_TIMEOUT: 10000,
+            getApiUrl: function() {
+                return `https://api.jsonbin.io/v3/b/${this.BIN_ID}/latest`;
+            }
+        };
+
         // DOM Elements
-        const profilePicture = document.getElementById('profilePicture');
-        const profileUsername = document.getElementById('profileUsername');
-        const profileStatus = document.getElementById('profileStatus');
-        const profileFlair = document.getElementById('profileFlair');
-        const accountDate = document.getElementById('accountDate');
-        const age = document.getElementById('age');
-        const gender = document.getElementById('gender');
-        const nationality = document.getElementById('nationality');
-        const country = document.getElementById('country');
-        const interests = document.getElementById('interests');
-        const hobbies = document.getElementById('hobbies');
-        const bio = document.getElementById('bio');
-        const email = document.getElementById('email');
-        const phone = document.getElementById('phone');
-        const editProfileBtn = document.getElementById('editProfileBtn');
-        const userNavItem = document.getElementById('userNavItem');
-        
-        // Initialize page
-        document.addEventListener('DOMContentLoaded', function() {
-            checkAuth();
-            loadProfileData();
-            
-            editProfileBtn.addEventListener('click', function() {
+        const elements = {
+            profileContainer: document.getElementById('profileContainer'),
+            profilePicture: document.getElementById('profilePicture'),
+            profileUsername: document.getElementById('profileUsername'),
+            profileStatus: document.getElementById('profileStatus'),
+            profileFlair: document.getElementById('profileFlair'),
+            accountDate: document.getElementById('accountDate'),
+            age: document.getElementById('age'),
+            gender: document.getElementById('gender'),
+            nationality: document.getElementById('nationality'),
+            country: document.getElementById('country'),
+            interests: document.getElementById('interests'),
+            hobbies: document.getElementById('hobbies'),
+            bio: document.getElementById('bio'),
+            email: document.getElementById('email'),
+            phone: document.getElementById('phone'),
+            editProfileBtn: document.getElementById('editProfileBtn'),
+            followBtn: document.getElementById('followBtn'),
+            userNavItem: document.getElementById('userNavItem')
+        };
+
+        // Utility Functions
+        function sanitizeInput(input) {
+            return DOMPurify.sanitize(String(input || '').trim(), { ALLOWED_TAGS: [] });
+        }
+
+        function showError(message) {
+            elements.profileContainer.innerHTML = `
+                <div class="error-message">${sanitizeInput(message)}</div>
+            `;
+        }
+
+        function formatDate(dateString) {
+            try {
+                const date = new Date(dateString);
+                return isNaN(date.getTime()) ? 'Not available' : date.toLocaleDateString();
+            } catch {
+                return 'Not available';
+            }
+        }
+
+        // Authentication
+        function checkAuth() {
+            try {
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                if (!currentUser?.username) {
+                    window.location.href = 'signup.html';
+                    return false;
+                }
+                elements.userNavItem.innerHTML = `<a href="profile.html">${sanitizeInput(currentUser.username)}</a>`;
+                return currentUser;
+            } catch (error) {
+                console.error('Auth error:', error);
+                showError('Authentication failed. Please log in again.');
+                return false;
+            }
+        }
+
+        // Load Profile Data
+        async function loadProfileData() {
+            const currentUser = checkAuth();
+            if (!currentUser) return;
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetUsername = sanitizeInput(urlParams.get('username')) || currentUser.username;
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
+
+                const response = await fetch(CONFIG.getApiUrl(), {
+                    headers: {
+                        'X-Master-Key': CONFIG.API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const users = Array.isArray(data.record?.users) ? data.record.users : [];
+                const userProfile = users.find(user => user.username === targetUsername);
+
+                if (!userProfile) {
+                    showError(`Profile not found for username "${targetUsername}".`);
+                    return;
+                }
+
+                // Populate Profile
+                elements.profileUsername.textContent = sanitizeInput(userProfile.username);
+                elements.email.textContent = sanitizeInput(userProfile.email || 'Not provided');
+                elements.accountDate.textContent = formatDate(userProfile.createdAt);
+
+                // Profile Picture
+                if (userProfile.profile?.picture) {
+                    elements.profilePicture.style.backgroundImage = `url(${sanitizeInput(userProfile.profile.picture)})`;
+                } else {
+                    elements.profilePicture.textContent = sanitizeInput(userProfile.username.charAt(0).toUpperCase());
+                }
+
+                // Profile Details
+                const profile = userProfile.profile || {};
+                elements.profileStatus.innerHTML = profile.onlineStatus
+                    ? '<span class="online-dot"></span> Online'
+                    : '<span class="offline-dot"></span> Offline';
+                elements.profileStatus.classList.add(profile.onlineStatus ? 'online' : 'offline');
+                
+                elements.profileFlair.textContent = sanitizeInput(profile.flair || '');
+                elements.age.textContent = sanitizeInput(profile.age || 'Not specified');
+                elements.gender.textContent = profile.gender 
+                    ? sanitizeInput(profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1))
+                    : 'Not specified';
+                elements.nationality.textContent = sanitizeInput(profile.nationality || 'Not specified');
+                elements.country.textContent = sanitizeInput(profile.country || 'Not specified');
+                elements.interests.textContent = Array.isArray(profile.interests) && profile.interests.length
+                    ? sanitizeInput(profile.interests.join(', '))
+                    : 'Not specified';
+                elements.hobbies.textContent = sanitizeInput(profile.hobbies || 'Not specified');
+                elements.bio.textContent = sanitizeInput(profile.bio || 'No bio yet.');
+                elements.phone.textContent = sanitizeInput(profile.phone || 'Not provided');
+
+                // Show appropriate buttons
+                if (targetUsername === currentUser.username) {
+                    elements.editProfileBtn.style.display = 'inline-block';
+                    elements.followBtn.style.display = 'none';
+                } else {
+                    elements.editProfileBtn.style.display = 'none';
+                    elements.followBtn.style.display = 'inline-block';
+                }
+
+            } catch (error) {
+                console.error('Profile load error:', error);
+                showError(error.name === 'AbortError'
+                    ? 'Request timed out. Please try again.'
+                    : 'Failed to load profile. Check your connection and try again.');
+            }
+        }
+
+        // Follow Functionality
+        async function handleFollow() {
+            try {
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                const targetUsername = sanitizeInput(elements.profileUsername.textContent);
+
+                if (!currentUser.username) {
+                    alert('Please sign in to follow users');
+                    return;
+                }
+
+                if (currentUser.username === targetUsername) {
+                    alert('You cannot follow yourself!');
+                    return;
+                }
+
+                currentUser.following = Array.isArray(currentUser.following) ? currentUser.following : [];
+                if (currentUser.following.includes(targetUsername)) {
+                    alert(`You're already following ${targetUsername}`);
+                    return;
+                }
+
+                currentUser.following.push(targetUsername);
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                alert(`You're now following ${targetUsername}!`);
+                elements.followBtn.textContent = 'Following';
+                elements.followBtn.disabled = true;
+            } catch (error) {
+                console.error('Follow error:', error);
+                alert('Failed to follow user. Please try again.');
+            }
+        }
+
+        // Event Listeners
+        function setupEventListeners() {
+            elements.editProfileBtn.addEventListener('click', () => {
                 window.location.href = 'edit-profile.html';
             });
-        });
-        
-        // Check authentication
-        function checkAuth() {
-            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-            
-            if (!currentUser) {
-                window.location.href = 'signup.html';
+            elements.followBtn.addEventListener('click', handleFollow);
+        }
+
+        // Initialize
+        function initialize() {
+            if (Object.values(elements).some(el => !el)) {
+                document.body.innerHTML = '<p class="error-message">Page loading error. Please refresh.</p>';
                 return;
             }
-            
-            // Update navigation
-            userNavItem.innerHTML = `<a href="profile.html">${currentUser.username}</a>`;
+            setupEventListeners();
+            loadProfileData();
         }
-        
-        // Load profile data
-        async function loadProfileData() {
-            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-            if (!currentUser) return;
-            
-            try {
-                const response = await fetch(API_URL, {
-                    headers: {
-                        'X-Master-Key': API_KEY
-                    }
-                });
-                const data = await response.json();
-                const users = data.record.users || [];
-                
-                const userProfile = users.find(user => user.username === currentUser.username);
-                if (userProfile) {
-                    // Set basic info
-                    profileUsername.textContent = currentUser.username;
-                    email.textContent = currentUser.email || 'Not provided';
-                    
-                    // Set account creation date
-                    if (userProfile.createdAt) {
-                        accountDate.textContent = new Date(userProfile.createdAt).toLocaleDateString();
-                    }
-                    
-                    // Set profile picture
-                    if (userProfile.profile?.picture) {
-                        profilePicture.style.backgroundImage = `url(${userProfile.profile.picture})`;
-                    } else {
-                        profilePicture.textContent = currentUser.username.charAt(0).toUpperCase();
-                    }
-                    
-                    // Set profile details if they exist
-                    if (userProfile.profile) {
-                        const profile = userProfile.profile;
-                        
-                        // Status
-                        if (profile.onlineStatus) {
-                            profileStatus.innerHTML = '<span class="online-dot"></span> Online';
-                            profileStatus.classList.add('online');
-                        } else {
-                            profileStatus.innerHTML = '<span class="offline-dot"></span> Offline';
-                            profileStatus.classList.add('offline');
-                        }
-                        
-                        // Flair
-                        if (profile.flair) {
-                            profileFlair.textContent = profile.flair;
-                        }
-                        
-                        // Basic details
-                        age.textContent = profile.age || 'Not specified';
-                        gender.textContent = profile.gender ? profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1) : 'Not specified';
-                        nationality.textContent = profile.nationality || 'Not specified';
-                        country.textContent = profile.country || 'Not specified';
-                        
-                        // Interests
-                        if (profile.interests && profile.interests.length > 0) {
-                            interests.textContent = profile.interests.join(', ');
-                        } else {
-                            interests.textContent = 'Not specified';
-                        }
-                        
-                        // Hobbies
-                        hobbies.textContent = profile.hobbies || 'Not specified';
-                        
-                        // Bio
-                        bio.textContent = profile.bio || 'No bio yet. Tell others about yourself!';
-                        
-                        // Phone
-                        phone.textContent = profile.phone || 'Not provided';
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading profile:', error);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof DOMPurify === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.7/purify.min.js';
+                script.onload = initialize;
+                document.head.appendChild(script);
+            } else {
+                initialize();
             }
-        }
+        });
     </script>
 </body>
 </html>
